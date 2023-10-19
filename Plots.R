@@ -20,6 +20,25 @@ library(purrr)
 library(dunn.test)
 
 
+text_size_ref_1 <- theme(
+  text = element_text(size=19),
+  axis.title = element_text(size=19),
+  axis.text = element_text(size=19),
+  plot.title = element_text(size=19),
+  legend.text = element_text(size=18), 
+  legend.title = element_text(size=18)
+)
+
+text_size_ref_2 <- theme(
+  text = element_text(size=15),
+  axis.title = element_text(size=15),
+  axis.text = element_text(size=15),
+  plot.title = element_text(size=15),
+  legend.text = element_text(size=14), 
+  legend.title = element_text(size=14)
+)
+
+
 # Set working directory.
 setwd("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots")
 
@@ -64,26 +83,26 @@ df_combined_all_cohorts <- rbind(df_contour_RTX_joined, df_contour_HCW_joined, d
 
 # Rename appropriately.
 df_combined_all_cohorts$Cohort <- recode(df_combined_all_cohorts$Cohort, 
-                                         "RTX" = "R3A (rituximab after 3 dose)",
-                                         "Convalescent" = "1A (convalescent COVID 1 month)",
-                                         "HCW" = "HCW3A (healthy after infection and 2 vaccinations)")
+                                         "RTX" = "RTX 3A",
+                                         "Convalescent" = "Conv 1A",
+                                         "HCW" = "HCW 3A")
 
 # Figure: Antibody affinity and concentration of binding sites across different patient cohorts and variants. 
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure1.pdf", width=10, height=6)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/7A.pdf", width=10, height=6)
 ggplot(df_combined_all_cohorts, aes(x = KD, y = AB)) +
   geom_hdr(aes(fill=Cohort)) +
   geom_line(aes(group = interaction(Patient_ID, B)), color="black", alpha=0.3,  linetype="dashed") +
   geom_point(aes(color = Cohort, shape = B, fill = Variant), size = 3, stroke = 1) +
   scale_shape_manual(values = c(21, 21), guide = "none") +
-  scale_fill_manual(values = c("WT" = "white", "Omicron" = "black", "HCW3A (healthy after infection and 2 vaccinations)" = "#FFB7C3", "1A (convalescent COVID 1 month)" = "#C0FDC5", "R3A (rituximab after 3 dose)" = "#FFEFBF"),
+  scale_fill_manual(values = c("WT" = "white", "Omicron" = "black", "HCW 3A" = "#FFB7C3", "Conv 1A" = "#C0FDC5", "RTX 3A" = "#FFEFBF"),
                     breaks = c("WT", "Omicron"), 
                     guide = guide_legend(override.aes = list(shape = c(NA, NA), colour = c("black", "black")))) +
-  scale_color_manual(values = c("HCW3A (healthy after infection and 2 vaccinations)" = "#D81B60", "1A (convalescent COVID 1 month)" = "#03A900", "R3A (rituximab after 3 dose)" = "#FFC107")) + 
+  scale_color_manual(values = c("HCW 3A" = "#D81B60", "Conv 1A" = "#03A900", "RTX 3A" = "#FFC107")) + 
   theme_classic() +
   labs(x = expression(K[D]~"(M)"), y = "[Ab Binding Sites] (M)",
        color = "Cohort", fill = "Variant") +
   theme(legend.position = "right") + 
-  scale_x_reverse()
+  scale_x_reverse() + text_size_ref_2
 dev.off()
 
 #### SECTION 2: group comparison plots ####
@@ -132,42 +151,28 @@ df_boxplots_HCW <- get_boxplot_ready_df(c("Cohort", "Sex", "Patient ID", "3A [AB
 df_boxplots_joined <- rbind(df_boxplots_conv, df_boxplots_RTX, df_boxplots_HCW)
 df_boxplots_joined <- left_join(df_boxplots_joined, df[c("Patient ID", "Age", "Age Bracket (> nearest 5 years)")], by = "Patient ID") %>% rename("Age_bracket" ="Age Bracket (> nearest 5 years)")
 
+df_boxplots_joined$Cohort <- recode(df_boxplots_joined$Cohort, 
+                                    "RTX" = "RTX 3A",
+                                    "Convalescent" = "Conv 1A",
+                                    "HCW" = "HCW 3A")
+
 #### Figure: Sex vs AB * KD violin plot
 df_boxplots_joined_sex <- df_boxplots_joined %>% filter(!is.na(Sex))
 
 # No correlation annotation.
 df_boxplots_joined_sex$combined_group_label <-paste(df_boxplots_joined_sex$Sex, df_boxplots_joined_sex$Cohort, sep = " - ")
 
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure2.pdf", width=10, height=6)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/7C.pdf", width=10, height=6)
 ggplot(df_boxplots_joined_sex, aes(x = interaction(Sex, Variant, sep = " - "), y = Multiplication, fill = Variant, color = Variant)) +
   geom_violin(alpha = 0.4, position = position_dodge(width = 0.5)) +
   geom_jitter(aes(shape = Cohort), size = 2, position = position_jitter(width = 0.1)) +
   theme_classic() +
   scale_color_manual(values = c("WT" = "#8400A2", "Omicron" = "#FFC107", "Male"= "#1f77b4", "Female" = "#ff7f0e"), name="Variant") +
   scale_fill_manual(values = c("WT" = "#8400A2", "Omicron" = "#FFC107"), name = "Variant") +
-  labs(x = "Sex and Variant", y = expression(AB %*% KD), fill = "Variant", color = "Variant") +
+  labs(x = "Sex and Variant", y = expression("[Ab]"%*% K[D]), fill = "Variant", color = "Variant") +
   scale_shape_discrete(name = "Cohort") +
-  scale_x_discrete(labels = function(x) gsub(" - ", "\n", x)) 
+  scale_x_discrete(labels = function(x) gsub(" - ", "\n", x))  + text_size_ref_1
 dev.off()
-
-# Get p-values for comparison female vs. male for each cohort - Mann-Whitney test for the distributions.
-mann_whitney_per_cohort <- function(df) {
-  female_values <- df %>% filter(Sex == "Female") %>% pull(Multiplication)
-  male_values <- df %>% filter(Sex == "Male") %>% pull(Multiplication)
-  
-  test_result <- wilcox.test(female_values, male_values, exact = FALSE)
-  return(test_result$p.value)
-}
-
-# Applying the function to each cohort
-p_values <- df_boxplots_sex_mann_whitney %>%
-  group_by(Cohort) %>%
-  nest() %>% 
-  mutate(p_value = map_dbl(data, mann_whitney_per_cohort)) %>%
-  select(Cohort, p_value)
-
-print(p_values)
-
 
 
 # Figure: Age vs AB * KD. 
@@ -184,10 +189,10 @@ get_age_mult_plot <- function(df, x, y, x_corr = "Multiplication", y_corr = "Age
       scale_color_manual(values = c("WT" = "#8400A2", "Omicron" = "#FFC107")) +
       scale_fill_manual(values = c("WT" = "#8400A2", "Omicron" = "#FFC107")) +
       theme_classic() +
-      labs(y = y_label, x = expression(AB %*% KD), fill = "Variant") +
-      annotate("text", x = x_cord, y = y_cords[1], label = age_mult_omicron_corr$label, color="#FFC107", parse = TRUE) + 
-      annotate("text", x = x_cord, y = y_cords[2], label = age_mult_WT_corr$label, color="#8400A2", parse = TRUE) 
-    
+      labs(y = y_label, x = expression("[Ab]"%*% K[D]), fill = "Variant") +
+      annotate("text", x = x_cord, y = y_cords[1], label = age_mult_omicron_corr$label, color="#FFC107", parse = TRUE, size = 5) + 
+      annotate("text", x = x_cord, y = y_cords[2], label = age_mult_WT_corr$label, color="#8400A2", parse = TRUE, size = 5) + text_size_ref_1 +
+      scale_x_continuous(labels = function(x) format(x, scientific = TRUE, digits = 1))
     
     # Assign the plots based on the method.
     results[[paste0("plot_age_mult_", method)]] <- plot_age_mult
@@ -196,8 +201,8 @@ get_age_mult_plot <- function(df, x, y, x_corr = "Multiplication", y_corr = "Age
   return(results)
 }
 
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure3.pdf", width=10, height=6)
-# Exact age (only HCW and RTX)
+
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/7B.pdf", width=10, height=6)
 df_boxplots_exact_age <- df_boxplots_joined %>% filter(!is.na(Age))
 get_age_mult_plot(df_boxplots_exact_age, df_boxplots_exact_age$Multiplication, df_boxplots_exact_age$Age, y_corr ="Age", x_cord = 3.4e-15)
 
@@ -206,14 +211,15 @@ get_age_mult_plot(df_boxplots_joined, df_boxplots_joined$Multiplication, df_boxp
 
 # Exact for HCW and RTX, approximate for Convalescent.
 df_boxplots_joined_mix_exact_approximate <- df_boxplots_joined %>%
-  mutate(Age = ifelse(Cohort == "Convalescent", Age_bracket, Age))
-get_age_mult_plot(df_boxplots_joined_mix_exact_approximate, df_boxplots_joined_mix_exact_approximate$Multiplication, df_boxplots_joined_mix_exact_approximate$Age, y_corr ="Age", y_label = "Age (exact for HCW/RTX; > nearest 5 years for Convalescent)")
+  mutate(Age = ifelse(Cohort == "Conv 1A", Age_bracket, Age))
+get_age_mult_plot(df_boxplots_joined_mix_exact_approximate, df_boxplots_joined_mix_exact_approximate$Multiplication, df_boxplots_joined_mix_exact_approximate$Age, y_corr ="Age", y_label = "Age (nearest 5 years for Conv)")
 dev.off()
+
+
 
 # Figure: disease severity vs Kd x [Ab]; Only involves the convalescent Covid cohort at 1 month post infection.
 df_boxplots_Vasc <- df[,c("Cohort", "Patient ID",  "Disease Severity", "1A [AB] WT", "1A KD WT")] %>% filter(Cohort == "Convalescent") 
 df_boxplots_Vasc$Multiplication <- df_boxplots_Vasc$`1A [AB] WT` * df_boxplots_Vasc$`1A KD WT`
-
 
 # Summarize the number of samples for each Disease Severity where Multplication is not NA
 df_counts_disease_severity <- df_boxplots_Vasc %>%
@@ -221,26 +227,16 @@ df_counts_disease_severity <- df_boxplots_Vasc %>%
   group_by(`Disease Severity`) %>%
   summarise(n = n(), .groups = 'drop')
 
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure4.pdf", width=12, height=7)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/7D.pdf", width=12, height=7)
 ggplot(df_boxplots_Vasc, aes(y = `Disease Severity`, x = log10(Multiplication), fill = `Disease Severity`)) +
   geom_boxplot(alpha = 0.4, outlier.size = 0, width = 0.5, position = position_dodge(1)) +
   geom_point(size = 3) +
-  geom_text(data = df_counts_disease_severity, aes(y = `Disease Severity`, x = Inf, label = paste("n =", n)), 
-            hjust = "inward", vjust = 0.5, color = "black", size = 3.5) +
+  geom_text(data = df_counts_disease_severity, aes(y = `Disease Severity`, x = Inf, label = paste(" n =", n)), 
+            hjust = "inward", vjust = 1.5, color = "black", size = 5) +
   theme_classic() +
-  labs(y = "Disease Severity", x = expression(log[10](AB %*% KD)))
+  labs(y = "Disease Severity", x = expression(log[10]("[Ab]" %*% K[D]))) + text_size_ref_2
 dev.off()
 
-# Kruskal-wallis test
-disease_severity_kruskal_wall_result <- kruskal.test(Multiplication ~ `Disease Severity`, data = df_boxplots_Vasc)
-print(disease_severity_kruskal_wall_result)
-
-# Pairwise comparison between disease severity groups.
-disease_severity_dunn_result <- dunn.test(df_boxplots_Vasc$Multiplication, df_boxplots_Vasc$`Disease Severity`)
-print(disease_severity_dunn_result)
-
-disease_severity_dunn_result_BH <- dunn.test(df_boxplots_Vasc$Multiplication, df_boxplots_Vasc$`Disease Severity`, method="BH")
-print(disease_severity_dunn_result_BH)
 
 
 #### STATISTICS COMPARISONS ####
@@ -264,82 +260,7 @@ summary(lm_age_product)
 lm_age_bracket_product <- lm(Multiplication ~ Age_bracket, data = df_boxplots_joined)
 summary(lm_age_bracket_product)
 
-
-#### SECTION 3: visualise relationship between neutralisation/luminex and MAAP - RTX (Vasculitis) cohort ####
-visualise_relationship <- function(type, var_1, var_2) {
-  df_2A <- df %>% 
-    filter(Cohort == "RTX") %>%
-    select(ID = "Patient ID", 
-           AB = paste0("2A [AB] ", type),
-           KD = paste0("2A KD ", type), 
-           Lmnx = "2A RBD Lmnx MFI", 
-           ND50 = paste0("2A ", type, " ND50"),
-           MAAP = paste0("2A MAAP ", type, " Q/B/U/N")) %>% mutate(group = "2A")
-  
-  df_3A <- df %>% 
-    filter(Cohort == "RTX") %>%
-    select(ID = "Patient ID", 
-           AB = paste0("3A [AB] ", type),
-           KD = paste0("3A KD ", type), 
-           Lmnx = "3A RBD Lmnx MFI", 
-           ND50 = paste0("3A ", type, " ND50"),
-           MAAP = paste0("3A MAAP ", type, " Q/B/U/N")) %>% mutate(group = "3A")
-  
-  df_relationship_combined <- bind_rows(df_2A, df_3A)
-  
-  arrow_margin <- 0.05
-  
-  df_relationship_pairs <- inner_join(df_relationship_combined %>% filter(group == "2A"), 
-                                      df_relationship_combined %>% filter(group == "3A"), 
-                                      by = "ID", 
-                                      suffix = c(".2A", ".3A")) %>%
-    # (KD.3A - KD.2A)*arrow_margin calculates the x-direction margin as a fraction (arrow_margin) of the total horizontal distance between the two points. 
-    # (AB.3A - AB.2A)*arrow_margin calculates the y-direction margin as a fraction of the total vertical distance.
-    mutate(
-      start_x = get(paste0(var_1, ".2A")) + (get(paste0(var_1, ".3A")) - get(paste0(var_1, ".2A")))*arrow_margin,
-      start_y = get(paste0(var_2, ".2A")) + (get(paste0(var_2, ".3A")) - get(paste0(var_2, ".2A")))*arrow_margin,
-      end_x = get(paste0(var_1, ".3A")) - (get(paste0(var_1, ".3A")) - get(paste0(var_1, ".2A")))*arrow_margin,
-      end_y = get(paste0(var_2, ".3A")) - (get(paste0(var_2, ".3A")) - get(paste0(var_2, ".2A")))*arrow_margin
-    )
-  
-  return(list(relationship_combined = df_relationship_combined, relationship_pairs = df_relationship_pairs))
-}
-
-# Visualise relationship between [Ab binding site, Kd (M)] with MAAP, ND50, and Lmnx.
-create_relationship_plot <- function(df_WT, df_omicron, x, y, size, x_axis_label, y_axis_label) {
-  return(ggplot() +
-           geom_point(data = df_WT$relationship_combined, 
-                      aes(x = !!sym(x), y = !!sym(y), shape = MAAP, size = log10(!!sym(size)), group = ID)) +
-           scale_shape_manual(values = c(21, 22), limits=c("B", "Q")) + 
-           geom_segment(data = df_WT$relationship_pairs, 
-                        aes(x = start_x, y = start_y, xend = end_x, yend = end_y, alpha=0.8), 
-                        arrow = arrow(length = unit(0.3, "cm")), size = 0.4, linetype = "longdash", color = "grey", show.legend = FALSE) +
-           
-           geom_point(data = df_omicron$relationship_combined, 
-                      aes(x = !!sym(x), y = !!sym(y), shape = MAAP, size = log10(!!sym(size)), group = ID)) +
-           scale_shape_manual(values = c(21, 22), limits=c("B", "Q")) +
-           geom_segment(data = df_omicron$relationship_pairs, 
-                        aes(x = start_x, y = start_y, xend = end_x, yend = end_y, alpha=0.8), 
-                        arrow = arrow(length = unit(0.3, "cm")), size = 0.4, linetype = "longdash", color = "grey", show.legend = FALSE) +
-           theme_classic() +
-           scale_size_continuous(name = expression(log[10](ND[50]))) +
-           labs(x = x_axis_label, y = y_axis_label) +
-           theme(legend.key.size = unit(0.4, "cm")))
-}
-
-# KD vs AB with LMNX on color.
-df_WT_relationship_KD_AB <- visualise_relationship("WT", "KD", "AB")
-df_WT_relationship_KD_AB$relationship_combined <- filter(df_WT_relationship_KD_AB$relationship_combined, !MAAP %in% c("N", "U"))
-
-df_Omicron_relationship_KD_AB <- visualise_relationship("Omicron", "KD", "AB")
-df_Omicron_relationship_KD_AB$relationship_combined <- filter(df_Omicron_relationship_KD_AB$relationship_combined, !MAAP %in% c("N", "U"))
-
-# Figure
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure5.pdf", width=10, height=6)
-create_relationship_plot(df_WT_relationship_KD_AB, df_Omicron_relationship_KD_AB, x= "KD", y ="AB", size= "ND50", x_axis_label =  expression(K[D]~"(M)"), y_axis_label = "[Ab Binding Sites] (M)") + scale_x_reverse()
-dev.off()
-
-#### SECTION 4: How different serum antibody assessments relate to each other ####
+#### SECTION 3: How different serum antibody assessments relate to each other ####
 create_df_variant <- function(df, cohort, timepoint, variant) {
   df %>%
     filter(Cohort == cohort) %>%
@@ -357,14 +278,12 @@ create_df_variant <- function(df, cohort, timepoint, variant) {
 
 # Filter the datasets so that we get only data in each cohort -> perform the test on those.
 seperate_df_in_cohorts <- function(df) {
-  convalescent <- df %>% filter(Cohort == "Convalescent")
-  HCW <- df %>% filter(Cohort == "HCW")
-  RTX <- df %>% filter(Cohort == "RTX")
+  convalescent <- df %>% filter(Cohort == "Conv 1A & 1B")
+  HCW <- df %>% filter(Cohort == "HCW 3A")
+  RTX <- df %>% filter(Cohort == "RTX 2A & 3A")
   
   return(list(Convalescent = convalescent, HCW = HCW, RTX = RTX))
 }
-
-
 
 get_together_plot <- function(df, x, y, x_label, y_label, cords, cor_test, method = "pearson") {
   
@@ -373,7 +292,7 @@ get_together_plot <- function(df, x, y, x_label, y_label, cords, cor_test, metho
     theme_classic() + 
     geom_smooth(aes(group = Variant), method="lm", color="black") + 
     labs(x = x_label, y = y_label) + 
-    annotate("text", x = cords[1], y = cords[2], label = cor_test$label, parse = TRUE)
+    annotate("text", x = cords[1], y = cords[2], label = cor_test$label, parse = TRUE, size = 5)
   
   return(plot_together)
 }
@@ -383,9 +302,9 @@ get_per_cohort_plot <- function(df, cor_conv, cor_HCW, cor_RTX, x, y, x_label, y
   plot_per_cohort <- ggplot(df, aes(x= {{ x }}, y= {{ y }}, color=Cohort, shape=Cohort)) +
     geom_point() + theme_classic() + geom_smooth(aes(group = Cohort, fill = Cohort), method="lm") + 
     labs(x = x_label, y = y_label) + 
-    annotate("text", x = x_cord, y = y_cords[1], label = cor_conv$label, color="#F8766D", parse = TRUE) + 
-    annotate("text", x = x_cord, y = y_cords[2], label = cor_HCW$label, color="#00BA38", parse = TRUE) + 
-    annotate("text", x = x_cord, y = y_cords[3], label = cor_RTX$label, color="#619CFF", parse = TRUE)  +
+    annotate("text", x = x_cord, y = y_cords[1], label = cor_conv$label, color="#F8766D", parse = TRUE, size = 5) + 
+    annotate("text", x = x_cord, y = y_cords[2], label = cor_HCW$label, color="#00BA38", parse = TRUE, size = 5) + 
+    annotate("text", x = x_cord, y = y_cords[3], label = cor_RTX$label, color="#619CFF", parse = TRUE, size = 5)  +
     guides(color = guide_legend(override.aes = list(linetype = 0)),
            shape = guide_legend(override.aes = list(linetype = 0)))
   
@@ -424,6 +343,7 @@ together_and_per_cohort_plots <- function(df, x, y, x_as_string, y_as_string, x_
   
   return(results)
 }
+
 
 remove_outlier_points <- function(df, n, feature, x, y, x_as_string, y_as_string, x_label, y_label, x_cord_cohort, y_cords_cohort, decreasing = TRUE, method = "pearson", x_trans = identity, y_trans = identity) {
   
@@ -478,13 +398,19 @@ serum_antibody_relation_RTX <- purrr::pmap_dfr(combinations_RTX,
 serum_antibody_relation_HCW <- purrr::pmap_dfr(list(c("3A"), c("WT", "Omicron")), 
                                                ~create_df_variant(df, "HCW", ..1, ..2))
 
-# Get all points (1A timepoint for WT variant) for patients cohort.
-serum_antibody_relation_patient <- create_df_variant(df, "Convalescent", "1A", "WT")
+# Get all points (1A and 1B timepoint for WT variant) for patients cohort.
+serum_antibody_relation_patient_1A <- create_df_variant(df, "Convalescent", "1A", "WT")
+serum_antibody_relation_patient_1B <- create_df_variant(df, "Convalescent", "1B", "WT")
+serum_antibody_relation_patient <- rbind(serum_antibody_relation_patient_1A, serum_antibody_relation_patient_1B)
 
 serum_antibody_relation_all_combined <- rbind(serum_antibody_relation_RTX, serum_antibody_relation_HCW, serum_antibody_relation_patient)
 
-# Keep only WT variant.
-serum_antibody_relation_all_combined_only_WT <- serum_antibody_relation_all_combined %>% filter(Variant == "WT") %>% mutate(Multiplication = AB * KD, min_logKD = -log10(KD))
+# Keep only WT variant. UPDATE - change names to showcase timepoints.
+serum_antibody_relation_all_combined_only_WT <-
+  serum_antibody_relation_all_combined %>% filter(Variant == "WT") %>% mutate(Multiplication = AB * KD, min_logKD = -log10(KD), Cohort = recode(Cohort,
+                                                                                                                                                "Convalescent" = "Conv 1A & 1B",
+                                                                                                                                                "HCW" = "HCW 3A",
+                                                                                                                                                "RTX" = "RTX 2A & 3A"))
 
 df_serum_antibody_relation_cohorts <- seperate_df_in_cohorts(serum_antibody_relation_all_combined_only_WT)
 df_serum_antibody_relation_WT_only_Convalescent <- df_serum_antibody_relation_cohorts$Convalescent %>% mutate("-logKD" = -log10(KD))
@@ -493,7 +419,7 @@ df_serum_antibody_relation_WT_only_RTX <- df_serum_antibody_relation_cohorts$RTX
 
 
 #### Figure: AB vs ND50
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure6.pdf", width=10, height=6)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/8B.pdf", width= 10, height=6)
 AB_ND50 <-
   together_and_per_cohort_plots(
     df = serum_antibody_relation_all_combined_only_WT,
@@ -511,29 +437,19 @@ AB_ND50 <-
     y_cords_cohort = c(2.6, 2.4, 2.2)
   )
 
-# Remove the biggest outlier.
-AB_ND50_no_outlier  <- remove_outlier_points(
-  df = serum_antibody_relation_all_combined_only_WT,
-  n = 1,
-  feature = "AB",
-  x = "AB",
-  y = "ND50",
-  x_as_string = "AB",
-  y_as_string = "ND50",
-  x_label = "[Ab Binding Sites] (M)",
-  y_label = expression(log[10]~"(ND50)"),
-  x_cord_cohort = 1e-06,
-  y_cords_cohort = c(2.4, 2.2, 2),
-  x_trans = identity, 
-  y_trans = log10
-)
+# Make text larger refinements.
+AB_ND50 <- lapply(AB_ND50, function(plot) {
+  plot + text_size_ref_1
+})
 
 AB_ND50
-AB_ND50_no_outlier
 dev.off()
 
+
+
+
 ####  Figure: KD vs ND50
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure7.pdf", width=10, height=6)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/supp_5A.pdf", width=10, height=6)
 KD_ND50 <-
   together_and_per_cohort_plots(
     df = serum_antibody_relation_all_combined_only_WT,
@@ -551,50 +467,17 @@ KD_ND50 <-
     y_cords_cohort =  c(4.5, 4.3, 4.1)
   )
 
+
+KD_ND50 <- lapply(KD_ND50, function(plot) {
+  plot + text_size_ref_2
+})
+
 KD_ND50
-dev.off()
 
-#### Figure: Multiplication vs ND50 
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure8.pdf", width=10, height=6)
-Mult_ND50 <-
-  together_and_per_cohort_plots(
-    df = serum_antibody_relation_all_combined_only_WT,
-    x = Multiplication,
-    y = log10(ND50),
-    x_as_string = "Multiplication",
-    y_as_string = "ND50",
-    x_label = expression(AB  %*% K[d]),
-    y_label = expression(log[10]~"(ND50)"),
-    cords_together = c(1.5e-14, 4.5),
-    df_conv = df_serum_antibody_relation_WT_only_Convalescent,
-    df_HCW = df_serum_antibody_relation_WT_only_HCW,
-    df_RTX = df_serum_antibody_relation_WT_only_RTX,
-    x_cord_cohort = 2e-14,
-    y_cords_cohort = c(4.5, 4.3, 4.1)
-  )
-
-# Remove the 5 biggest outliers
-Mult_ND50_no_outlier  <- remove_outlier_points(
-  df = serum_antibody_relation_all_combined_only_WT,
-  n = 5,
-  feature = "Multiplication",
-  x = "Multiplication", 
-  y = "ND50",
-  x_as_string = "Multiplication", 
-  y_as_string = "ND50",
-  x_label = expression(AB  %*% K[d]),
-  y_label = expression(log[10]~"(ND50)"),
-  x_cord_cohort = 4e-15,
-  y_cords_cohort = c(4.5, 4.3, 4.1),
-  x_trans = identity, 
-  y_trans = log10
-)
-Mult_ND50
-Mult_ND50_no_outlier
 dev.off()
 
 #### Figure: LMNX vs ND50
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure9.pdf", width=10, height=6)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/8C.pdf", width=10, height=6)
 LMNX_ND50 <-
   together_and_per_cohort_plots(
     df = serum_antibody_relation_all_combined_only_WT,
@@ -611,11 +494,18 @@ LMNX_ND50 <-
     x_cord_cohort = 10000,
     y_cords_cohort = c(4.5, 4.3, 4.1)
   )
+
+
+# Make text larger refinements.
+LMNX_ND50 <- lapply(LMNX_ND50, function(plot) {
+  plot + text_size_ref_1
+})
+
 LMNX_ND50
 dev.off()
 
 #### Figure: LMNX vs AB
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure10.pdf", width=10, height=6)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/supp_5C.pdf", width=10, height=6)
 LMNX_AB <-
   together_and_per_cohort_plots(
     df = serum_antibody_relation_all_combined_only_WT,
@@ -632,11 +522,17 @@ LMNX_AB <-
     x_cord_cohort = 10000,
     y_cords_cohort = c(2e-06, 1.9e-06, 1.8e-06)
   )
+
+LMNX_AB <- lapply(LMNX_AB, function(plot) {
+  plot + text_size_ref_2
+})
+
 LMNX_AB
+
 dev.off()
 
 #### Figure: LMNX vs KD
-pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure11.pdf", width=10, height=6)
+pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Refinement_plots/supp_5B.pdf", width=10, height=6)
 LMNX_KD <-
   together_and_per_cohort_plots(
     df = serum_antibody_relation_all_combined_only_WT,
@@ -653,10 +549,16 @@ LMNX_KD <-
     x_cord_cohort = 8.8,
     y_cords_cohort = c(14000, 12000, 10000)
   )
+
+LMNX_KD <- lapply(LMNX_KD, function(plot) {
+  plot + text_size_ref_2
+})
+
+
 LMNX_KD
 dev.off()
 
-#### Section 5: heatmap ####
+#### SECTION 4: heatmap ####
 data_heatmap <- df %>% select("Cohort", "2A S Lmnx MFI", "3A S Lmnx MFI", "2A WT ND50", "3A WT ND50", "2A Delta ND50", "3A Delta ND50", "2A [AB] WT", "3A [AB] WT")
 
 create_modular_heatmap <- function(name_heatmap, df_selected, colour_first, colour_second, new_column_names, annotation_gp = NULL, annotate_left = F, column_name = name_heatmap) {
@@ -703,44 +605,4 @@ ht_ethnicity <- Heatmap(df$Ethnicity, name = "Ethnicity", na_col = "#F5F5F5", co
 # Figure: summary heatmap
 pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure12.pdf", width=14, height=7)
 ht_lmnx + ht_KD + ht_AB + ht_ND + ht_age + ht_sex + ht_ethnicity
-dev.off()
-
-
-#### Section 6: correlograms ####
-#ND50 WT, ND50 Om, RBD Lmnx, S Lmnx, N Lmnx, Kd WT, Kd Om, [Ab] WT, [Ab] Om. 
-data_correlogram_vasculitis_T2 <- df %>% filter(Cohort == "RTX") %>% select("WT ND50" = "2A WT ND50", "Omicron ND50" = "2A Omicron ND50", "RBD LMNX" = "2A RBD Lmnx MFI", "N LMNX" = "2A N Lmnx MFI", "S LMNX" = "2A S Lmnx MFI", "WT KD" = "2A KD WT", "Omicron KD" = "2A KD Omicron", "WT AB" = "2A [AB] WT", "Omicron AB" = "2A [AB] Omicron")
-data_correlogram_vasculitis_T3 <- df %>% filter(Cohort == "RTX") %>% select("WT ND50" = "3A WT ND50", "Omicron ND50" = "3A Omicron ND50", "RBD LMNX" = "3A RBD Lmnx MFI", "N LMNX" = "3A N Lmnx MFI", "S LMNX" = "3A S Lmnx MFI", "WT KD" = "3A KD WT", "Omicron KD" = "3A KD Omicron", "WT AB" = "3A [AB] WT", "Omicron AB" = "3A [AB] Omicron")
-data_correlogram_HCW_T3 <- df %>% filter(Cohort == "HCW") %>% select("WT ND50" = "3A WT ND50", "Omicron ND50" = "3A Omicron ND50", "RBD LMNX" = "3A RBD Lmnx MFI", "N LMNX" = "3A N Lmnx MFI", "S LMNX" = "3A S Lmnx MFI", "WT KD" = "3A KD WT", "Omicron KD" = "3A KD Omicron", "WT AB" = "3A [AB] WT", "Omicron AB" = "3A [AB] Omicron")
-data_correlogram_patients_T1 <- df %>% filter(Cohort == "Convalescent") %>% select("WT ND50" = "1A WT ND50", "RBD LMNX" = "1A RBD Lmnx MFI", "N LMNX" = "1A N Lmnx MFI", "S LMNX" = "1A S Lmnx MFI", "WT KD" = "1A KD WT", "WT AB" = "1A [AB] WT")
-
-bubble_corrplot <- function(df, method="pearson", adjust="none", p_val_size = T, sig.level = 0.1) {
-  
-  cor_test <-  psych::corr.test(df, method=method, adjust = adjust)
-  cor.vals <- cor_test$r
-  p.values <- cor_test$p
-  print(p.values)
-  corrplot(cor.vals, p.mat = p.values, method = 'circle',, insig='blank',
-           addCoef.col ='gray',  number.cex = 0.8, order = 'original', diag=T, sig.level = sig.level, col = colorRampPalette(c("darkred", "lightgray", "darkblue"))(200), tl.col = "black")
-}
-
-# Figure: all observations independent of cohort and time-point 
-data_correlogram_patients_with_all_columns <- data_correlogram_patients_T1 %>% mutate("Omicron ND50" = NA, "Omicron KD" = NA, "Omicron AB" = NA)
-data_correlogram_combined <- rbind(data_correlogram_vasculitis_T2, data_correlogram_vasculitis_T3, data_correlogram_HCW_T3, data_correlogram_patients_with_all_columns)
-
-data_correlogram_combined$`WT KD` <- -log10(data_correlogram_combined$`WT KD`)
-data_correlogram_combined$`Omicron KD` <- -log10(data_correlogram_combined$`Omicron KD`)
-
- pdf("/Users/rafaelkoll/Desktop/4/Uni/Research/second_paper/Covid-paper-plots/COVID_paper_plots/plots_pdf/figure_correlograms.pdf", width=10, height=10)
-# Pearson - no adjust
-bubble_corrplot(data_correlogram_combined, method="pearson", adjust = "none", sig.level=0.01)
-
-# Spearman - no adjust
-bubble_corrplot(data_correlogram_combined, method="spearman", adjust = "none", sig.level=0.01)
-
-
-# Pearson - BH adjust
-bubble_corrplot(data_correlogram_combined, method="pearson", adjust = "BH", sig.level=0.01)
-
-# Spearman - BH adjust
-bubble_corrplot(data_correlogram_combined, method="spearman", adjust = "BH", sig.level=0.01)
 dev.off()
